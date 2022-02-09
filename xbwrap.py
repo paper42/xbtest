@@ -21,6 +21,8 @@ def getpkgname(pkgver: str) -> str:
 
 class XBPS():
     def __init__(self, root: str = "/") -> None:
+        if shutil.which("xbps-query") is None:
+            raise RuntimeError("xbps-query not found in $PATH")
         self.root = root
 
 
@@ -68,6 +70,8 @@ class XBPS():
 
 class Environment:
     def __init__(self, root: Path) -> None:
+        if shutil.which("bwrap") is None:
+            raise RuntimeError("bwrap not found in $PATH")
         self.root = root
         if os.stat(root).st_dev != os.stat("/").st_dev:
             raise RuntimeError(f"{root} is not on the same fs as /")
@@ -151,11 +155,9 @@ class XBEnv():
 
 def main() -> int:
     # TODO: proper argument parsing
-    # TODO: check dependencies
     pkgname = sys.argv[1]
     command = sys.argv[2:]
 
-    # root = Path(f"{XBWRAPDIR}/root1").absolute()
     xbenv = XBEnv()
 
     xbenv.build(pkgname)
