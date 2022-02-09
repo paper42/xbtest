@@ -5,7 +5,7 @@ from typing import List
 
 # xbps-install --repository=$mirror -r "$root" -S base-voidstrap --cachedir /var/cache/xbps/
 
-VERBOSITY = 2
+VERBOSITY = 1
 # TODO: log to stderr
 # TODO: make VERBOSITY configurable by -v -vv -vvv
 
@@ -74,7 +74,8 @@ def main() -> int:
     deps.append(pkgname)
 
     installed_pkgs = get_installed_pkgs(root=root)
-    print(installed_pkgs)
+    if VERBOSITY > 1:
+        print(installed_pkgs)
 
     # packages whose files need to be "linked" by bwrap
     wrap_pkgs = []
