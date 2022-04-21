@@ -6,9 +6,7 @@ import shutil
 import tempfile
 import argparse
 from pathlib import Path
-from typing import List, Optional
-
-# xbps-install --repository=$mirror -r "$root" -S base-voidstrap --cachedir /var/cache/xbps/
+from typing import List, Tuple, Optional
 
 VERBOSITY = 1
 XBWRAPDIR = "/var/lib/xbwrap"
@@ -86,8 +84,12 @@ class Environment:
     def destroy(self) -> None:
         shutil.rmtree(self.root)
 
-    def run_cmd(self, command: List[str]) -> int:
+    def run_cmd(self, command: List[str], env: List[Tuple[str, str]]) -> int:
+        envargs = []
+        for key, val in env:
+            envargs += ["--setenv", key, val]
         cmd = ["bwrap",
+               "--clearenv"] + envargs + [
                "--unshare-all",
                "--hostname", "test",
                "--bind", str(self.root), "/",
@@ -139,8 +141,8 @@ class XBEnv():
 
         self.env.build(wrap_files)
 
-    def run_cmd(self, cmd: List[str]) -> int:
-        return self.env.run_cmd(cmd)
+    def run_cmd(self, cmd: List[str], env: List[Tuple[str, str]]) -> int:
+        return self.env.run_cmd(cmd, env)
 
     def destroy(self) -> None:
         self.env.destroy()
@@ -155,16 +157,23 @@ def main() -> int:
     parser.add_argument("-b", "--base",
                         default="base-minimal",
                         help="add a package to the environment")
+    parser.add_argument("-e", "--env",
+                        action='append',
+                        default=[],
+                        nargs=2,
+                        metavar=("VAR", "VALUE"),
+                        help="add variable to env")
     parser.add_argument('command',
                         default=["dash"],
-                        nargs='*')
+                        nargs='*',
+                        help="command and arguments to run in the environment")
     args = parser.parse_args()
 
     xbenv = XBEnv()
 
     xbenv.build(args.add, args.base)
 
-    retcode = xbenv.run_cmd(args.command)
+    retcode = xbenv.run_cmd(args.command, env=args.env)
     xbenv.destroy()
     return retcode
 
