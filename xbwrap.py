@@ -90,7 +90,8 @@ class Environment:
                "--unshare-all",
                "--hostname", "test",
                "--bind", str(self.root), "/",
-               "--dev-bind", "/dev/shm", "/dev/shm"] + command
+               "--dev-bind", "/dev", "/dev",
+               "--bind", "/proc", "/proc"] + command
         if VERBOSITY > 1:
             print(" ".join(cmd))
         return subprocess.run(cmd).returncode
