@@ -4,6 +4,7 @@ import sys
 import os
 import shutil
 import tempfile
+import argparse
 from pathlib import Path
 from typing import List, Optional
 
@@ -109,7 +110,7 @@ class XBEnv():
         self.xbps = XBPS("/")  # we want xbps on the host system
         self.env = Environment(root)
 
-    def build(self, pkgname: str) -> None:
+    def build(self, pkgnames: List[str], base_pkg: str) -> None:
         installed_pkgs = []
         for pkg in self.xbps.get_installed_pkgs():
             installed_pkgs.append(getpkgname(pkg))
@@ -117,18 +118,9 @@ class XBEnv():
         if VERBOSITY > 1:
             print("installed_pkgs:", ", ".join(installed_pkgs))
 
-        deps = [pkgname] + \
-            self.xbps.get_deps(pkgname, recursive=True)
-
-        # TODO: musl
-        # base-minimal without having to have base-minimal installed
-        base_deps = ["base-files", "coreutils", "findutils", "diffutils",
-                     "dash", "grep", "gzip", "sed", "gawk", "util-linux",
-                     "which", "tar", "shadow", "procps-ng", "iana-etc",
-                     "xbps", "nvi", "tzdata", "runit-void", "removed-packages",
-                     "glibc-locales"]
-        deps += base_deps
-        for dep in base_deps:
+        deps = pkgnames
+        deps.append(base_pkg)
+        for dep in deps:
             deps += self.xbps.get_deps(dep, recursive=True)
 
         deps = list(dict.fromkeys(deps))  # remove duplicates
@@ -155,15 +147,24 @@ class XBEnv():
 
 
 def main() -> int:
-    # TODO: proper argument parsing
-    pkgname = sys.argv[1]
-    command = sys.argv[2:]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-a", "--add",
+                        action='append',
+                        default=[],
+                        help="add a package to the environment")
+    parser.add_argument("-b", "--base",
+                        default="base-minimal",
+                        help="add a package to the environment")
+    parser.add_argument('command',
+                        default=["dash"],
+                        nargs='*')
+    args = parser.parse_args()
 
     xbenv = XBEnv()
 
-    xbenv.build(pkgname)
+    xbenv.build(args.add, args.base)
 
-    retcode = xbenv.run_cmd(command)
+    retcode = xbenv.run_cmd(args.command)
     xbenv.destroy()
     return retcode
 
